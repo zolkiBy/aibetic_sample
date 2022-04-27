@@ -1,0 +1,116 @@
+import com.example.aibetictest.buildsrc.Libs
+import com.example.aibetictest.buildsrc.AppConfig
+
+plugins {
+    id 'com.android.application'
+    id 'org.jetbrains.kotlin.android'
+    id 'com.google.devtools.ksp'
+    id 'kotlinx-serialization'
+}
+
+android {
+    compileSdk = AppConfig.COMPILE_SDK
+
+    defaultConfig {
+        applicationId "com.example.aibetictest"
+        minSdk = AppConfig.MIN_SDK
+        targetSdk = AppConfig.TARGET_SDK
+        versionCode = AppConfig.VERSION_CODE
+        versionName = AppConfig.VERSION_NAME
+
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        vectorDrawables {
+            useSupportLibrary true
+        }
+
+        File localPropsFile = rootProject.file("local.properties")
+        if (localPropsFile.exists()) {
+            Properties props = new Properties()
+            props.load(localPropsFile.newDataInputStream())
+
+            def apiKey = props.getProperty("api.key", "")
+            if (apiKey.isEmpty()) {
+                println("WARNING: api key is empty")
+            } else {
+                println("Api key: $apiKey")
+            }
+
+            buildConfigField "String", "API_KEY", "\"${apiKey}\""
+        } else {
+            println("WARNING: local.properties file not exist")
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+    kotlinOptions {
+        jvmTarget = '1.8'
+    }
+    buildFeatures {
+        compose true
+    }
+    composeOptions {
+        kotlinCompilerExtensionVersion Libs.AndroidX.Compose.version
+    }
+    packagingOptions {
+        resources {
+            excludes += '/META-INF/{AL2.0,LGPL2.1}'
+        }
+    }
+    applicationVariants.all { variant ->
+        variant.sourceSets.java.each {
+            it.srcDirs += "build/generated/ksp/${variant.name}/kotlin"
+        }
+    }
+}
+
+dependencies {
+    implementation Libs.AndroidX.coreKtx
+
+    implementation Libs.AndroidX.Compose.ui
+    implementation Libs.AndroidX.Compose.material
+    implementation Libs.AndroidX.Compose.toolingPreview
+    implementation Libs.AndroidX.Compose.activity
+
+    implementation Libs.AndroidX.Lifecycle.runtime
+
+    implementation Libs.Kotlin.dateTime
+    implementation Libs.Kotlin.serialization
+    implementation Libs.Coroutines.core
+    implementation Libs.Coroutines.android
+
+    implementation Libs.Okhttp.client
+    implementation Libs.Okhttp.loggingInterceptor
+    implementation Libs.Retrofit.retrofit
+    implementation Libs.Retrofit.serializationConverter
+
+    implementation Libs.Di.koinAndroid
+    implementation Libs.Di.koinAnnotations
+    ksp Libs.Di.koinKspCompiler
+    implementation Libs.Di.koinCompose
+
+    implementation Libs.Logger.logger
+
+    debugImplementation Libs.AndroidX.Compose.tooling
+    debugImplementation Libs.AndroidX.Compose.testManifest
+
+    testImplementation Libs.Test.junit
+    testImplementation Libs.Coroutines.test
+    androidTestImplementation Libs.AndroidX.Test.Ext.junit
+    androidTestImplementation Libs.AndroidX.Test.espressoCore
+    androidTestImplementation Libs.AndroidX.Compose.testJunit
+}
+
+tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
+    kotlinOptions {
+        freeCompilerArgs += "-opt-in=kotlin.RequiresOptIn"
+    }
+}
